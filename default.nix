@@ -1,12 +1,13 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "default", doBenchmark ? false }:
 
 let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, base, bytestring, conduit
-      , http-conduit, http-types, lens, lens-aeson, optparse-applicative
-      , regex-compat, resourcet, stdenv, text, time, vector
+  f = { mkDerivation, aeson, base, bytestring, conduit, containers
+      , directory, http-conduit, http-types, lens, lens-aeson, MissingH
+      , optparse-applicative, regex-compat, resourcet, stdenv, text, time
+      , vector
       }:
       mkDerivation {
         pname = "micro-analyser";
@@ -15,9 +16,9 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson base bytestring conduit http-conduit http-types lens
-          lens-aeson optparse-applicative regex-compat resourcet text time
-          vector
+          aeson base bytestring conduit containers directory http-conduit
+          http-types lens lens-aeson MissingH optparse-applicative
+          regex-compat resourcet text time vector
         ];
         description = "Allows inspection of microservices on MDTP";
         license = stdenv.lib.licenses.bsd3;
@@ -27,7 +28,9 @@ let
                        then pkgs.haskellPackages
                        else pkgs.haskell.packages.${compiler};
 
-  drv = haskellPackages.callPackage f {};
+  variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
+
+  drv = variant (haskellPackages.callPackage f {});
 
 in
 

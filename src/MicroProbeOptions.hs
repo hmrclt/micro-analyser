@@ -13,7 +13,7 @@ data Environment = Dev | QA | Staging | Prod
 data Options = Options Command Environment DateOpts Mode
              deriving Show
 
-data Command = WhatTalksTo Service
+data Command = WhatTalksTo Service Bool Bool
              | WhatItTalksTo Service
              | TraceUser SessionId
              deriving Show

@@ -4,25 +4,25 @@ import Data.Semigroup((<>))
 import Kibana
 import MicroProbeOptions
 import MAOutput
-import Format (fromBuckets, debucket, stripVars)
-import Control.Monad
-import qualified Data.Map as M
-import Data.List (intercalate)
 import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Maybe (catMaybes)
 
 commandParser,whatTalksToParser, whatItTalksToParser, traceUserParser :: Parser Command
-whatTalksToParser = WhatTalksTo <$>
-  argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
+whatTalksToParser = WhatTalksTo <$> mainP <*> endpointsBreakdown <*> responseCodeBreakdown
+  where
+    mainP = argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
+    endpointsBreakdown = switch (long "endpoints-breakdown" <> help "group results by endpoint")
+    responseCodeBreakdown = switch (long "response-code-breakdown" <> help "group results by response-code")    
 whatItTalksToParser = WhatItTalksTo <$>
   argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
 traceUserParser = TraceUser <$>
   argument str (metavar "SESSION-ID" <> help "SESSION-ID of user")
 
 commandParser = hsubparser (
-  command "inbound" (info (whatTalksToParser) (progDesc "find inbound µS traffic")) <>
-  command "outbound" (info (whatItTalksToParser) (progDesc "find outbound µS traffic")) <>
-  command "traceUser" (info (traceUserParser) (progDesc "trace a user by SESSION-ID"))    
+  command "inbound" (info whatTalksToParser (progDesc "find inbound µS traffic")) <>
+  command "outbound" (info whatItTalksToParser (progDesc "find outbound µS traffic")) <>
+  command "traceUser" (info traceUserParser (progDesc "trace a user by SESSION-ID"))    
   )                  
 
 environmentParser :: Parser Environment
@@ -61,7 +61,7 @@ main = probe =<< execParser opts
                    <> header "micro-probe - a µS diagnostic tool")
 
 probe :: Options -> IO ()
-probe (Options cmd env dateopts DebugRequest) = do
+probe (Options cmd _ dateopts DebugRequest) = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
   BL.putStrLn $ encode query
@@ -70,5 +70,11 @@ probe (Options cmd env dateopts mode) = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
   jsonResponse <- execQuery' query env
-  output jsonResponse mode
---probe (Options _ _ time)  = dateRange time >>= print
+  output jsonResponse headers mode
+  where
+    headers = case cmd of
+      (WhatTalksTo _ a b) -> catMaybes [Just "Caller"
+                                       , if a then Just "Endpoint" else Nothing
+                                       , if b then Just "Response" else Nothing
+                                       ]
+      _ -> []      
