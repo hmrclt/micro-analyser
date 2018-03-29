@@ -13,7 +13,7 @@ whatTalksToParser = WhatTalksTo <$> mainP <*> endpointsBreakdown <*> responseCod
   where
     mainP = argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
     endpointsBreakdown = switch (long "endpoints-breakdown" <> help "group results by endpoint")
-    responseCodeBreakdown = switch (long "response-code-breakdown" <> help "group results by response-code")    
+    responseCodeBreakdown = switch (long "response-code-breakdown" <> help "group results by response-code")
 whatItTalksToParser = WhatItTalksTo <$>
   argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
 traceUserParser = TraceUser <$>
@@ -22,8 +22,8 @@ traceUserParser = TraceUser <$>
 commandParser = hsubparser (
   command "inbound" (info whatTalksToParser (progDesc "find inbound µS traffic")) <>
   command "outbound" (info whatItTalksToParser (progDesc "find outbound µS traffic")) <>
-  command "traceUser" (info traceUserParser (progDesc "trace a user by SESSION-ID"))    
-  )                  
+  command "traceUser" (info traceUserParser (progDesc "trace a user by SESSION-ID"))
+  )
 
 environmentParser :: Parser Environment
 environmentParser = option auto
@@ -44,8 +44,22 @@ modeParser = option auto (
     <> metavar "MODE"
   )
 
+timeoutParser :: Parser Int
+timeoutParser = option auto (
+  help "timeout in seconds before disconnecting from kibana"
+    <> long "timeout"
+    <> showDefault
+    <> value 10
+    <> metavar "SECONDS"
+  )
+
 optionParser :: Parser Options
-optionParser = Options <$> commandParser <*> environmentParser <*> dateOpts <*> modeParser
+optionParser = Options <$>
+  commandParser <*>
+  environmentParser <*>
+  dateOpts <*>
+  modeParser <*>
+  timeoutParser
 
 dateOpts :: Parser DateOpts
 dateOpts = onParser <|> todayParser <|> rangeParser <|> pure Today
@@ -61,15 +75,15 @@ main = probe =<< execParser opts
                    <> header "micro-probe - a µS diagnostic tool")
 
 probe :: Options -> IO ()
-probe (Options cmd _ dateopts DebugRequest) = do
+probe (Options cmd _ dateopts DebugRequest _) = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
   BL.putStrLn $ encode query
 
-probe (Options cmd env dateopts mode) = do
+probe (Options cmd env dateopts mode timeout) = do
   (from, to) <- dateRange dateopts
-  let query = searchQuery' cmd from to
-  jsonResponse <- execQuery' query env
+  let query = searchQuery' cmd from to 
+  jsonResponse <- execQuery' query env timeout
   output jsonResponse headers mode
   where
     headers = case cmd of
@@ -77,4 +91,4 @@ probe (Options cmd env dateopts mode) = do
                                        , if a then Just "Endpoint" else Nothing
                                        , if b then Just "Response" else Nothing
                                        ]
-      _ -> []      
+      _ -> []

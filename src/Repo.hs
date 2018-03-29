@@ -42,15 +42,15 @@ repoFromDir dir = Repo (dropPath dir) dir <$> rtype
           a <- doesDirectoryExist $ dir ++ "/app"
           return $ if a then Service [] else Library
 
-endpointsFromFile :: FilePath -> IO [Endpoint]
-endpointsFromFile file = _ <$> fmap (splitWs) . filter notComment . fmap strip . lines <$> readFile file
-  where
-    notComment :: String -> Bool
-    notComment l = l /= "" && not ("#" `isPrefixOf` l)
-    toEndpoint :: [String] -> IO [Endpoint]
-    toEndpoint ("->":_:c:_) = endpointsFromFile $ takePath file ++ "/" ++ (fmap toLower c)
-    toEndpoint (m:p:_) = return [Endpoint (read m) p]
-    toEndpoint _ = return []
+-- endpointsFromFile :: FilePath -> IO [Endpoint]
+-- endpointsFromFile file = _ <$> fmap (splitWs) . filter notComment . fmap strip . lines <$> readFile file
+--   where
+--     notComment :: String -> Bool
+--     notComment l = l /= "" && not ("#" `isPrefixOf` l)
+--     toEndpoint :: [String] -> IO [Endpoint]
+--     toEndpoint ("->":_:c:_) = endpointsFromFile $ takePath file ++ "/" ++ (fmap toLower c)
+--     toEndpoint (m:p:_) = return [Endpoint (read m) p]
+--     toEndpoint _ = return []
 
 endpointsFromProjectDir :: FilePath -> IO [Endpoint]
 endpointsFromProjectDir = undefined

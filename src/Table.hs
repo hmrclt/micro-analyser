@@ -15,7 +15,7 @@ module Table ( Table
              , toCsv
              , toOrg
              , mapCol
-             , mapColK             
+             , mapColK
              )  where 
 
 import Data.Vector hiding ((++), mapM_)
@@ -61,12 +61,12 @@ mapCol f hk (Table h b) = Table h newB
         updateLine l = fromList $ updateC f <$> (toList . indexed) l
         updateC :: (a -> a) -> (Int, a) -> a
         updateC f2 (i,v) | i == hk = f2 v
-        updateC _ (_,v)           = v        
+        updateC _ (_,v)           = v
 
 mapColK :: Eq h => (a -> a) -> h -> Table h a -> Table h a
 mapColK f k t = mapCol f (headerK t k) t
 
-instance Functor (Table h) where  
+instance Functor (Table h) where
     fmap f (Table h b) = Table h (fmap (fmap f) b)
 
 toCsv :: (Show h, Show a) => Table h a -> String

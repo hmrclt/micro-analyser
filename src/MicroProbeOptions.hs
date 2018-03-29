@@ -6,11 +6,12 @@ data SearchCriteria = SearchCriteria Int
 
 type Service = String
 type SessionId = String
+type TimeoutSeconds = Int
 
 data Environment = Dev | QA | Staging | Prod
                  deriving (Show, Read)
 
-data Options = Options Command Environment DateOpts Mode
+data Options = Options Command Environment DateOpts Mode TimeoutSeconds
              deriving Show
 
 data Command = WhatTalksTo Service Bool Bool

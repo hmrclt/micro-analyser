@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Kibana where
+module Kibana (dateRange, searchQuery', execQuery') where
 
 import Network.HTTP.Conduit
 import MicroProbeOptions
@@ -27,14 +27,15 @@ timeToValue :: UTCTime -> Value
 timeToValue = toJSON . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S"
 
 dateRangeValue :: UTCTime -> UTCTime -> Value
-dateRangeValue from to  = object [ "range" .= object [
-                            "@timestamp" .= object [
-                                "gte" .= timeToValue from,
-                                  "lte" .= timeToValue to,
-                                  "format" .= String "date_hour_minute_second"]]]
+dateRangeValue from to  = object [
+  "range" .= object [
+      "@timestamp" .= object [
+          "gte" .= timeToValue from,
+            "lte" .= timeToValue to,
+            "format" .= String "date_hour_minute_second"]]]
 
 aggs :: [String] -> Value
-aggs fields = inner fields 2
+aggs fields = inner fields (2 :: Integer)
   where
     inner [] _ = Null
     inner (field:fx) i =
@@ -101,13 +102,14 @@ execQueryB' jsonQuery env mode = do
                      , ("kbn-xsrf","reporting")
                      , ("content-type","application/x-ndjson") ]
 
-execQuery' :: Value -> Environment -> IO Value
-execQuery' jsonQuery env = do
+execQuery' :: Value -> Environment -> Int -> IO Value
+execQuery' jsonQuery env timeout = do
   let body = BL.concat [ encode bodyHeader', "\n", encode jsonQuery, "\n" ]
   secret <- readSecret
   initReq <- parseRequest $ kibanaUrl env
   let req = initReq { method = "POST"
                     , secure = True
+                    , responseTimeout = responseTimeoutMicro $ timeout * 1000
                     , requestHeaders = (requestHeaders initReq) ++ extraHeaders secret
                     , requestBody = RequestBodyLBS $ body }
   response <- httpJSON req
