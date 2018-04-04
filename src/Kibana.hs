@@ -67,11 +67,8 @@ searchQuery' (WhatTalksTo s breakdownEndPoints breakdownResponseCode) from to =
   where query = "request: (\"GET /" ++ s ++ "/*\" OR \"POST /" ++ s ++ "/*\")"
         aggParts = catMaybes [ Just "http_user_agent.raw"
                    , if breakdownEndPoints then Just "request.raw" else Nothing
-                   , if breakdownResponseCode then Just "status" else Nothing                   
+                   , if breakdownResponseCode then Just "status" else Nothing
                    ]
-
-combinedQuery :: Command -> UTCTime -> UTCTime -> BL.ByteString
-combinedQuery c from to = BL.concat [ encode bodyHeader', "\n", encode (searchQuery' c from to), "\n" ]
 
 dateRange :: DateOpts -> IO (UTCTime, UTCTime)
 dateRange Today = do
@@ -84,23 +81,7 @@ dateRange (Between f Nothing) = do
 dateRange (Between f (Just t)) = pure (f,t)
 dateRange (On day) = pure (start,end)
   where start = UTCTime day (secondsToDiffTime 0)
-        end   = UTCTime (addDays 1 day) (secondsToDiffTime 0)  
-
-execQueryB' :: Value -> Environment -> Mode -> IO BL.ByteString
-execQueryB' jsonQuery env mode = do
-  let body = BL.concat [ encode bodyHeader', "\n", encode jsonQuery, "\n" ]
-  secret <- readSecret
-  initReq <- parseRequest $ kibanaUrl env
-  let req = initReq { method = "POST"
-                    , secure = True
-                    , requestHeaders = (requestHeaders initReq) ++ extraHeaders secret
-                    , requestBody = RequestBodyLBS $ body }
-  getResponseBody <$> httpLBS req
-  where
-    extraHeaders :: B.ByteString -> RequestHeaders
-    extraHeaders s = [ ("Authorization", B.concat ["Basic ",s])
-                     , ("kbn-xsrf","reporting")
-                     , ("content-type","application/x-ndjson") ]
+        end   = UTCTime (addDays 1 day) (secondsToDiffTime 0)
 
 execQuery' :: Value -> Environment -> Int -> IO Value
 execQuery' jsonQuery env timeout = do
@@ -109,9 +90,10 @@ execQuery' jsonQuery env timeout = do
   initReq <- parseRequest $ kibanaUrl env
   let req = initReq { method = "POST"
                     , secure = True
-                    , responseTimeout = responseTimeoutMicro $ timeout * 1000
-                    , requestHeaders = (requestHeaders initReq) ++ extraHeaders secret
-                    , requestBody = RequestBodyLBS $ body }
+                    , responseTimeout = responseTimeoutMicro $ timeout * 1000000
+                    , requestHeaders = requestHeaders initReq ++ extraHeaders secret
+                    , requestBody = RequestBodyLBS body
+                    }
   response <- httpJSON req
   return $ getResponseBody response
   -- BL.putStrLn $ encode (getResponseBody response :: Value)
