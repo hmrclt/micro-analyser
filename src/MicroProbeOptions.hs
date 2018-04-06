@@ -19,7 +19,7 @@ data Command = WhatTalksTo Service Bool Bool
              | TraceUser SessionId
              deriving Show
 
-data Mode = Org | DebugResponse | DebugRequest deriving (Show,Read)
+data Mode = Org | Csv | DebugResponse | DebugRequest deriving (Show,Read)
 
 data DateOpts = On Day
               | Between UTCTime (Maybe UTCTime)

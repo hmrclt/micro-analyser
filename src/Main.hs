@@ -8,7 +8,7 @@ import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Maybe (catMaybes)
 import Repo
-
+import Table (render)
 
 commandParser,whatTalksToParser, whatItTalksToParser, traceUserParser :: Parser Command
 whatTalksToParser = WhatTalksTo <$> mainP <*> endpointsBreakdown <*> responseCodeBreakdown
@@ -84,9 +84,9 @@ probe (Options cmd _ dateopts DebugRequest _) = do
 
 probe (Options cmd env dateopts mode timeout) = do
   (from, to) <- dateRange dateopts
-  let query = searchQuery' cmd from to 
+  let query = searchQuery' cmd from to
   jsonResponse <- execQuery' query env timeout
-  output jsonResponse headers mode
+  putStrLn $ render mode $ jsonToTable jsonResponse headers
   where
     headers = case cmd of
       (WhatTalksTo _ a b) -> catMaybes [Just "Caller"
