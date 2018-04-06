@@ -22,3 +22,4 @@ denest = case (eitherDecode text)
               of Left e -> error e
                  Right r -> r
   where text = "{ \"outer\": { \"one\" : [1,2,3], \"two\": [4,5,6]}}"
+

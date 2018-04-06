@@ -6,7 +6,7 @@ import Network.HTTP.Conduit
 import MicroProbeOptions
 import qualified Data.ByteString as B
 import Network.HTTP.Types.Header (RequestHeaders)
-import           Data.Aeson hiding (Options)
+import           Data.Aeson
 import           Network.HTTP.Simple
 import qualified Data.ByteString.Lazy as BL
 import Data.Vector (fromList)
@@ -64,7 +64,7 @@ searchQuery' (WhatTalksTo s breakdownEndPoints breakdownResponseCode) from to =
            "size" .= Number 0,
            "_source" .= object ["excludes" .= (Array $ fromList [])],
            "aggs" .= aggs aggParts]
-  where query = "request: (\"GET /" ++ s ++ "/*\" OR \"POST /" ++ s ++ "/*\")"
+  where query = "server_name: \"" ++ s ++ ".service\""
         aggParts = catMaybes [ Just "http_user_agent.raw"
                    , if breakdownEndPoints then Just "request.raw" else Nothing
                    , if breakdownResponseCode then Just "status" else Nothing

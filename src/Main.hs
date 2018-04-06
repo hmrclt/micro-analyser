@@ -7,11 +7,13 @@ import MAOutput
 import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Maybe (catMaybes)
+import Repo
+
 
 commandParser,whatTalksToParser, whatItTalksToParser, traceUserParser :: Parser Command
 whatTalksToParser = WhatTalksTo <$> mainP <*> endpointsBreakdown <*> responseCodeBreakdown
   where
-    mainP = argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'")
+    mainP = argument str (metavar "MICRO-SERVICE" <> help "service name in gov.uk URI - e.g. 'gg'" <> completer (mkCompleter serviceNameCompleter))
     endpointsBreakdown = switch (long "endpoints-breakdown" <> help "group results by endpoint")
     responseCodeBreakdown = switch (long "response-code-breakdown" <> help "group results by response-code")
 whatItTalksToParser = WhatItTalksTo <$>
