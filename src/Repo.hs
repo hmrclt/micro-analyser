@@ -6,6 +6,7 @@ import System.Directory (getHomeDirectory, doesDirectoryExist, doesFileExist, li
 import Data.String.Utils (join, split, strip, splitWs)
 import Data.List (isPrefixOf, partition)
 import Data.Char (toLower)
+import Data.Maybe (catMaybes)
 import Control.Monad hiding (join)
 import Text.Regex
 
@@ -13,15 +14,30 @@ data Method = Post | Get | Put | Delete deriving (Show, Read, Eq)
 
 data Endpoint = Endpoint Method Path deriving Show
 
-data RepoType = Service [Endpoint] | Library deriving Show
+data RepoType = Service | Library deriving (Show, Eq)
 
 type Path = String
 type Name = String
 
-data Repo = Repo Name FilePath RepoType deriving (Show)
+data Repo = Repo { repoName :: Name
+                 , repoPath :: FilePath
+                 , repoType :: RepoType } deriving (Show)
 
 serviceNameCompleter :: String -> IO [String]
-serviceNameCompleter start = filter (start `isPrefixOf`) <$> reponames
+serviceNameCompleter start = do
+  allNames <- reponames
+  allRepos <- mapM repoFromName allNames
+  return $ (catMaybes . fmap collect) allRepos
+  where
+    collect :: Repo -> Maybe String
+    collect (Repo name _ Service) | isMatch name = Just name
+    collect _ = Nothing
+    acronym = fmap head . split "-"
+    isMatch :: String -> Bool
+    isMatch nameIn = startC `isPrefixOf` nameInC || startC == acronym nameInC
+      where
+        startC = fmap toLower start
+        nameInC = fmap toLower nameIn
 
 reponames :: IO [String]
 reponames = workspaceDir >>= listDirectory
@@ -52,7 +68,7 @@ repoFromDir :: FilePath -> IO Repo
 repoFromDir dir = Repo (dropPath dir) dir <$> rtype
   where rtype = do
           a <- doesDirectoryExist $ dir ++ "/app"
-          return $ if a then Service [] else Library
+          return $ if a then Service else Library
 
 endpointsFromFile :: FilePath -> IO [Endpoint]
 endpointsFromFile path = fmap parse <$> endpointsFromFiles' [("",path)]
@@ -67,13 +83,13 @@ wildcardify = mkRegex . replace ":[^/]*" "[^/]*" . replace "[*].*" ".*"
 
 matchEndpoint :: [Endpoint] -> Method -> String -> Maybe Endpoint
 matchEndpoint [] _ _                        = Nothing
-matchEndpoint (   (Endpoint m _):epx) method uri | m /= method = matchEndpoint epx method uri
-matchEndpoint (ep@(Endpoint _ p):epx) method uri = case (wildcardify p `matchRegex` uri) of
+matchEndpoint (   Endpoint m _:epx) method uri | m /= method = matchEndpoint epx method uri
+matchEndpoint (ep@(Endpoint _ p):epx) method uri = case wildcardify p `matchRegex` uri of
   Just  _ -> Just ep
   Nothing -> matchEndpoint epx method uri
 
 readMethod :: String -> Method
-readMethod (f:fs) = read $ f : (fmap toLower fs)
+readMethod (f:fs) = read $ f : fmap toLower fs
 readMethod other = error $ "unable to parse '" ++ other ++ "' into method"
 
 endpointsFromFiles' :: [(String, FilePath)] -> IO [[String]]
@@ -85,11 +101,11 @@ endpointsFromFiles' ((prefix, path):xs) = do
   return $ others ++ clear
   where
     makepaths :: String -> [String] -> (String, FilePath)
-    makepaths p (_:_:pref:route:_) = (prefix ++ pref, (takePath p) ++ "/" ++ fmap toLower route)
+    makepaths p (_:_:pref:route:_) = (prefix ++ pref, takePath p ++ "/" ++ fmap toLower route)
     makepaths e _                  = error $ "cannot parse " ++ show e
 
 separate :: [[String]] -> ([[String]], [[String]])
-separate i = partition predic i
+separate = partition predic
   where
     predic (_:"->":_) = True
     predic _          = False
