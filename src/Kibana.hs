@@ -14,6 +14,7 @@ import Data.Time
 import Data.Time.Format (formatTime)
 import qualified Data.Text as T
 import Data.Maybe (catMaybes)
+import MANetwork (assertVpn)
 
 import System.Directory (getHomeDirectory)
 kibanaUrl :: Environment -> String
@@ -85,6 +86,7 @@ dateRange (On day) = pure (start,end)
 
 execQuery' :: Value -> Environment -> Int -> IO Value
 execQuery' jsonQuery env timeout = do
+  _ <- assertVpn
   let body = BL.concat [ encode bodyHeader', "\n", encode jsonQuery, "\n" ]
   secret <- readSecret
   initReq <- parseRequest $ kibanaUrl env

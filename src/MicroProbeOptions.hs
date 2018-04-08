@@ -1,4 +1,4 @@
-module MicroProbeOptions where 
+module MicroProbeOptions where
 
 import Data.Time
 
@@ -15,8 +15,10 @@ data Options = Options Command Environment DateOpts Mode TimeoutSeconds
              deriving Show
 
 data Command = WhatTalksTo Service Bool Bool
+             | ListEndpoints Service
              | WhatItTalksTo Service
              | TraceUser SessionId
+--             | ShowConfig Service
              deriving Show
 
 data Mode = Org | Csv | DebugResponse | DebugRequest deriving (Show,Read)
