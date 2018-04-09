@@ -82,6 +82,11 @@ probe (Options cmd _ dateopts DebugRequest _) = do
   let query = searchQuery' cmd from to
   BL.putStrLn $ encode query
 
+probe (Options cmd env dateopts DebugResponse timeout) = do
+  (from, to) <- dateRange dateopts
+  let query = searchQuery' cmd from to
+  execQuery' query env timeout >>= BL.putStrLn . encode
+
 probe (Options cmd env dateopts mode timeout) = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
