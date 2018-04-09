@@ -15,14 +15,18 @@ import Data.Time.Format (formatTime)
 import qualified Data.Text as T
 import Data.Maybe (catMaybes)
 import MANetwork (assertVpn)
-
 import System.Directory (getHomeDirectory)
+
 kibanaUrl :: Environment -> String
 kibanaUrl Prod    = "https://kibana.tools.production.tax.service.gov.uk/elasticsearch/_msearch"
-kibanaUrl _    = "https://postman-echo.com/post"
+kibanaUrl Staging = "https://kibana.tools.staging.tax.service.gov.uk/elasticsearch/_msearch"
+kibanaUrl QA      = "https://kibana.tools.qa.tax.service.gov.uk/elasticsearch/_msearch"
+kibanaUrl Dev     = "https://kibana.tools.development.tax.service.gov.uk/elasticsearch/_msearch"
 
 bodyHeader' :: Value
-bodyHeader' = object [ "index" .= [ String "logstash-*"], "ignore_unavailable" .= True, "preference" .= String "" ]
+bodyHeader' = object [ "index" .= [ String "logstash-*"]
+                     , "ignore_unavailable" .= True
+                     , "preference" .= String "" ]
 
 timeToValue :: UTCTime -> Value
 timeToValue = toJSON . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S"
@@ -70,6 +74,7 @@ searchQuery' (WhatTalksTo s breakdownEndPoints breakdownResponseCode) from to =
                    , if breakdownEndPoints then Just "request.raw" else Nothing
                    , if breakdownResponseCode then Just "status" else Nothing
                    ]
+searchQuery' _ _ _ = error "Not yet implemented (sorry)"
 
 dateRange :: DateOpts -> IO (UTCTime, UTCTime)
 dateRange Today = do
@@ -98,7 +103,6 @@ execQuery' jsonQuery env timeout = do
                     }
   response <- httpJSON req
   return $ getResponseBody response
-  -- BL.putStrLn $ encode (getResponseBody response :: Value)
   where
     extraHeaders :: B.ByteString -> RequestHeaders
     extraHeaders s = [ ("Authorization", B.concat ["Basic ",s])

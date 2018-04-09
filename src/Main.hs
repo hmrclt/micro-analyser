@@ -86,11 +86,5 @@ probe (Options cmd env dateopts mode timeout) = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
   jsonResponse <- execQuery' query env timeout
-  putStrLn $ render mode $ jsonToTable jsonResponse headers
-  where
-    headers = case cmd of
-      (WhatTalksTo _ a b) -> catMaybes [Just "Caller"
-                                       , if a then Just "Endpoint" else Nothing
-                                       , if b then Just "Response" else Nothing
-                                       ]
-      _ -> []
+  table <- jsonToTable' jsonResponse cmd
+  putStrLn $ render mode table

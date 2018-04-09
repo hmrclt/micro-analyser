@@ -4,13 +4,14 @@ import System.Environment (lookupEnv)
 import System.IO (FilePath)
 import System.Directory (getHomeDirectory, doesDirectoryExist, doesFileExist, listDirectory)
 import Data.String.Utils (join, split, strip, splitWs)
-import Data.List (isPrefixOf, partition)
+import Data.List (isPrefixOf, partition, find)
 import Data.Char (toLower)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Control.Monad hiding (join)
 import Text.Regex
+import Text.Read
 
-data Method = Post | Get | Put | Delete deriving (Show, Read, Eq)
+data Method = Post | Get | Put | Delete | Head deriving (Show, Read, Eq)
 
 data Endpoint = Endpoint Method Path deriving Show
 
@@ -79,7 +80,9 @@ endpointsFromFile path = fmap parse <$> endpointsFromFiles' [("",path)]
 
 wildcardify :: String -> Regex
 wildcardify = mkRegex . replace ":[^/]*" "[^/]*" . replace "[*].*" ".*"
-  where replace from to x = subRegex (mkRegex from) x to
+
+replace :: String -> String -> String -> String
+replace from to x = subRegex (mkRegex from) x to
 
 matchEndpoint :: [Endpoint] -> Method -> String -> Maybe Endpoint
 matchEndpoint [] _ _                        = Nothing
@@ -89,8 +92,18 @@ matchEndpoint (ep@(Endpoint _ p):epx) method uri = case wildcardify p `matchRege
   Nothing -> matchEndpoint epx method uri
 
 readMethod :: String -> Method
-readMethod (f:fs) = read $ f : fmap toLower fs
-readMethod other = error $ "unable to parse '" ++ other ++ "' into method"
+readMethod "HEAD"    = Get 
+readMethod "OPTIONS" = Get -- treating HEAD and OPTIONS as subtypes of GET for now.
+readMethod (f:fs)    = case (readMaybe $ f : fmap toLower fs) of
+  Just r -> r
+  Nothing -> error $ "unable to parse '" ++ (f:fs) ++ "' into method"
+readMethod other     = error $ "unable to parse '" ++ other ++ "' into method"
+
+parsePath :: String -> (Method, String)
+parsePath val = case splitWs val of
+  (m:uri:_) -> (readMethod m, uri)
+  _         -> error $ "unable to parse request '" ++ val ++ "'"
+
 
 endpointsFromFiles' :: [(String, FilePath)] -> IO [[String]]
 endpointsFromFiles' [] = return []
@@ -126,5 +139,35 @@ endpointsFromFile' prefix file = fmap ((prefix:) . splitWs) . filter notComment 
 --     toEndpoint (m:p:_) = return [(read m):[p]]
 --     toEndpoint _ = return []
 
-endpointsFromProjectDir :: FilePath -> IO [Endpoint]
-endpointsFromProjectDir = undefined
+repoEndpoints :: Repo -> IO [Endpoint]
+repoEndpoints repo@(Repo _ path Service) =
+  playRouter repo >>= endpointsFromFile . (\x -> path ++ "/conf/" ++ x)
+repoEndpoints _                     = return []
+
+mapEndpoint :: String -> [Endpoint] -> String
+mapEndpoint l eps =
+  let (method, uri) = parsePath l
+  in case matchEndpoint eps method uri of
+       Just (Endpoint _ muri) -> show method ++ " " ++ muri
+       Nothing                -> l
+
+confFile :: Repo -> IO (Maybe FilePath)
+confFile (Repo _ path _) =
+  let
+    confPath = path ++ "/conf/application.conf"
+  in
+    do
+      exists <- doesFileExist confPath
+      return $ if exists then Just confPath else Nothing
+
+playRouter :: Repo -> IO FilePath
+playRouter repo = do
+  conf <- confFile repo
+  filePath <- case conf of
+    Just path -> do
+      confLines <- lines <$> readFile path
+      let routerLine = find (\x -> "play.http.router" `isPrefixOf` x || "application.router" `isPrefixOf` x) confLines
+
+      return $ fmap (replace "[.]Routes$" ".routes" . strip . head . tail . split "=") routerLine
+    Nothing -> return Nothing
+  return $ fromMaybe "prod.routes" filePath
