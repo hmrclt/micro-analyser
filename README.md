@@ -3,7 +3,7 @@
 CLI tool for extracting reporting info from Kibana
 
 # Usage
-
+```
 Usage: micro-analyser COMMAND [-e|--environment ENVIRONMENT] ([--on DAY] |
                       [--today] | [--from DATETIME] [--to DATETIME])
                       [-m|--mode MODE] [--timeout SECONDS]
@@ -23,9 +23,9 @@ Available commands:
   inbound                  find inbound µS traffic
   outbound                 find outbound µS traffic
   traceUser                trace a user by SESSION-ID
-
+```
 # inbound
-
+```
 Usage: micro-analyser inbound MICRO-SERVICE [--endpoints-breakdown]
                               [--response-code-breakdown]
   find inbound µS traffic
@@ -36,7 +36,7 @@ Available options:
   --response-code-breakdown
                            group results by response-code
   -h,--help                Show this help text
-
+```
 # Setup 
 
 In order to use micro-analyser you will need to extract the authorisation token
