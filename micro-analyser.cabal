@@ -1,4 +1,5 @@
 name:                micro-analyser
+-- the version is replaced at build time from the git tag
 version:             0.1.0.0
 synopsis:            Allows inspection of microservices on MDTP
 description:         Silly project names will continue until time is allocated for development. 
@@ -33,6 +34,7 @@ executable micro-analyser
                        containers, 
                        directory,
                        MissingH,
-                       network-info
+                       network-info,
+                       ansi-terminal
   hs-source-dirs:      src
   default-language:    Haskell2010
