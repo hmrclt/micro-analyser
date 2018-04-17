@@ -24,4 +24,4 @@
 # # it detects the vpn device is not active. You can specify the device by name
 # # or leave it undefined or blank if you want to try anyway.
 
-vpncheck=tun0
+vpncheck="tun0"
