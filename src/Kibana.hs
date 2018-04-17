@@ -14,8 +14,7 @@ import Data.Time
 import Data.Time.Format (formatTime)
 import qualified Data.Text as T
 import Data.Maybe (catMaybes)
-import MANetwork (assertVpn)
-import System.Directory (getHomeDirectory)
+import Data.ByteString.Char8 as C
 
 kibanaUrl :: Environment -> String
 kibanaUrl Prod    = "https://kibana.tools.production.tax.service.gov.uk/elasticsearch/_msearch"
@@ -89,16 +88,14 @@ dateRange (On day) = pure (start,end)
   where start = UTCTime day (secondsToDiffTime 0)
         end   = UTCTime (addDays 1 day) (secondsToDiffTime 0)
 
-execQuery' :: Value -> Environment -> Int -> IO Value
-execQuery' jsonQuery env timeout = do
-  _ <- assertVpn
+execQuery' :: String -> Value -> Environment -> Int -> IO Value
+execQuery' secret jsonQuery env timeout = do
   let body = BL.concat [ encode bodyHeader', "\n", encode jsonQuery, "\n" ]
-  secret <- readSecret
   initReq <- parseRequest $ kibanaUrl env
   let req = initReq { method = "POST"
                     , secure = True
                     , responseTimeout = responseTimeoutMicro $ timeout * 1000000
-                    , requestHeaders = requestHeaders initReq ++ extraHeaders secret
+                    , requestHeaders = requestHeaders initReq ++ extraHeaders (C.pack secret)
                     , requestBody = RequestBodyLBS body
                     }
   response <- httpJSON req
@@ -108,8 +105,3 @@ execQuery' jsonQuery env timeout = do
     extraHeaders s = [ ("Authorization", B.concat ["Basic ",s])
                      , ("kbn-xsrf","reporting")
                      , ("content-type","application/x-ndjson") ]
-
-readSecret :: IO B.ByteString
-readSecret = do
-  homeDir <- getHomeDirectory
-  B.readFile $ homeDir ++ "/.micro-analyser/secret"
