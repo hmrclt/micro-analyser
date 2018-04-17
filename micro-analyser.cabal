@@ -11,6 +11,7 @@ category:            Network
 build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
+data-files:          micro-analyser.conf.sample
 
 executable micro-analyser
   main-is:             Main.hs
@@ -33,6 +34,7 @@ executable micro-analyser
                        containers, 
                        directory,
                        MissingH,
-                       network-info
+                       network-info,
+                       configurator
   hs-source-dirs:      src
   default-language:    Haskell2010

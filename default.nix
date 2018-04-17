@@ -4,10 +4,10 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, base, bytestring, conduit, containers
-      , directory, http-conduit, http-types, lens, lens-aeson, MissingH
-      , network-info, optparse-applicative, regex-compat, resourcet
-      , stdenv, text, time, vector
+  f = { mkDerivation, aeson, base, bytestring, conduit
+      , configurator, containers, directory, http-conduit, http-types
+      , lens, lens-aeson, MissingH, network-info, optparse-applicative
+      , regex-compat, resourcet, stdenv, text, time, vector
       }:
       mkDerivation {
         pname = "micro-analyser";
@@ -15,9 +15,10 @@ let
         src = ./.;
         isLibrary = false;
         isExecutable = true;
+        enableSeparateDataOutput = true;
         executableHaskellDepends = [
-          aeson base bytestring conduit containers directory http-conduit
-          http-types lens lens-aeson MissingH network-info
+          aeson base bytestring conduit configurator containers directory
+          http-conduit http-types lens lens-aeson MissingH network-info
           optparse-applicative regex-compat resourcet text time vector
         ];
         description = "Allows inspection of microservices on MDTP";

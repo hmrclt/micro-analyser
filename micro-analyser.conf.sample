@@ -1,0 +1,27 @@
+# # micro-analyser config file. The micro-analyser will look in
+# # /etc/microtools/analyser.conf and in $HOME/.microtools/analyser.conf for
+# # configuration. 
+
+# # In order to use the micro-analyser you will need to at least set the
+# # 'secret' value. It is recommended that you set this value in
+# # $HOME/.microtools/analyser.conf rather than in the system configuration file
+# # here.
+
+# # 1. Open up a browser window with the developer tools. Open the networking tab.
+# # 2. Go to Kibana (any environment), log in if necessary and search for something
+# #    (anything)
+# # 3. Once _msearch appears in the networking tab of the developer tools open it up
+# #    and save the Authorization part of the request header into the 'secret' value
+
+# secret="Basic XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+
+
+# # If there is no VPN connected then micro-analyser will be unable to connect
+# # to kibana, and worse will sit there wasting your time before it times out.
+
+# # If you prefer you can have micro-analyser fail automatically and quickly if
+# # it detects the vpn device is not active. You can specify the device by name
+# # or leave it undefined or blank if you want to try anyway.
+
+vpncheck=tun0

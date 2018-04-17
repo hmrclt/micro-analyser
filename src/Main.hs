@@ -6,9 +6,10 @@ import MicroProbeOptions
 import MAOutput
 import Data.Aeson (encode)
 import qualified Data.ByteString.Lazy.Char8 as BL
-import Data.Maybe (catMaybes)
 import Repo
 import Table (render)
+import MAConfigFile
+import MANetwork (assertVpn)
 
 commandParser,whatTalksToParser, whatItTalksToParser, traceUserParser :: Parser Command
 whatTalksToParser = WhatTalksTo <$> mainP <*> endpointsBreakdown <*> responseCodeBreakdown
@@ -71,25 +72,32 @@ dateOpts = onParser <|> todayParser <|> rangeParser <|> pure Today
           <*> option auto (long "to" <> metavar "DATETIME")
 
 main :: IO ()
-main = probe =<< execParser opts
+main = mainProg =<< execParser opts
   where opts = info (optionParser <**> helper) (
           fullDesc <> progDesc "Retrieve µS data from kibana "
                    <> header "micro-probe - a µS diagnostic tool")
 
-probe :: Options -> IO ()
-probe (Options cmd _ dateopts DebugRequest _) = do
+mainProg :: Options -> IO ()
+mainProg opts = do
+  config <- readConfig
+  probe opts config
+
+probe :: Options -> MAConfigFile -> IO ()
+probe (Options cmd _ dateopts DebugRequest _) _ = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
   BL.putStrLn $ encode query
 
-probe (Options cmd env dateopts DebugResponse timeout) = do
+probe (Options cmd env dateopts DebugResponse timeout) config = do
   (from, to) <- dateRange dateopts
   let query = searchQuery' cmd from to
-  execQuery' query env timeout >>= BL.putStrLn . encode
+  _          <- assertVpn $ vpnDevice config
+  execQuery' (configSecret config) query env timeout >>= BL.putStrLn . encode
 
-probe (Options cmd env dateopts mode timeout) = do
-  (from, to) <- dateRange dateopts
+probe (Options cmd env dateopts mode timeout) config = do
+  (from, to)   <- dateRange dateopts
   let query = searchQuery' cmd from to
-  jsonResponse <- execQuery' query env timeout
-  table <- jsonToTable' jsonResponse cmd
+  _            <- assertVpn $ vpnDevice config
+  jsonResponse <- execQuery' (configSecret config) query env timeout
+  table        <- jsonToTable' jsonResponse cmd
   putStrLn $ render mode table
